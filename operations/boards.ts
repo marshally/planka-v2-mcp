@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { plankaRequest, sanitizeId } from "../common/utils.js";
-import { PlankaBoardSchema } from "../common/types.js";
+import { PlankaBoardSchema, PlankaListSchema, PlankaCardSchema, PlankaLabelSchema, PlankaCardLabelSchema } from "../common/types.js";
 import { getAdminUserId } from "../common/setup.js";
 import * as boardMemberships from "./boardMemberships.js";
 import * as lists from "./lists.js";
@@ -89,6 +89,16 @@ const BoardsResponseSchema = z.object({
 const BoardResponseSchema = z.object({
   item: PlankaBoardSchema,
   included: z.record(z.any()).optional(),
+});
+
+const BoardSnapshotSchema = z.object({
+  item: PlankaBoardSchema,
+  included: z.object({
+    lists: z.array(PlankaListSchema).default([]),
+    cards: z.array(PlankaCardSchema).default([]),
+    labels: z.array(PlankaLabelSchema.passthrough()).default([]),
+    cardLabels: z.array(PlankaCardLabelSchema).default([]),
+  }).passthrough().default({}),
 });
 
 // Function implementations
@@ -277,6 +287,15 @@ export async function getBoard(id: string) {
   }
 }
 
+/** The board read endpoint includes all data needed for a summary. */
+export async function getBoardSnapshot(id: string) {
+  try {
+    return BoardSnapshotSchema.parse(await plankaRequest(`/api/boards/${sanitizeId(id)}`));
+  } catch (error) {
+    throw new Error(`Failed to get board snapshot: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 /**
  * Updates a board's properties
  *
@@ -322,4 +341,3 @@ export async function deleteBoard(id: string) {
     );
   }
 }
-

@@ -1,10 +1,8 @@
 import { z } from "zod";
 // Import functions from operations directory
-import { getBoard } from "../operations/boards.js";
-import { getLists } from "../operations/lists.js";
-import { getCards } from "../operations/cards.js";
+import { getBoardSnapshot } from "../operations/boards.js";
+import { withCardLabels } from "../common/card-labels.js";
 import { getTasks } from "../operations/tasks.js";
-import { getLabels } from "../operations/labels.js";
 import { getComments } from "../operations/comments.js";
 
 /**
@@ -46,20 +44,20 @@ export async function getBoardSummary(params: GetBoardSummaryParams) {
     const { boardId, includeTaskDetails, includeComments } = params;
 
     try {
-        // Get the board details
-        const board = await getBoard(boardId);
+        const snapshot = await getBoardSnapshot(boardId);
+        const board = snapshot.item;
 
         if (!board) {
             throw new Error(`Board with ID ${boardId} not found`);
         }
 
-        // Get all lists on the board
-        const allLists = await getLists(boardId);
+        const { lists: allLists, cards: allCards, labels: boardLabels, cardLabels } = snapshot.included;
+        const labeledCards = withCardLabels(allCards, cardLabels, boardLabels);
 
-        // Get all cards for each list
+        // Group cards from the same board snapshot by list.
         const listsWithCards = await Promise.all(
-            allLists.map(async (list: any) => {
-                const listCards = await getCards(list.id);
+            allLists.map(async (list) => {
+                const listCards = labeledCards.filter((card) => card.listId === list.id);
 
                 // Get tasks for each card if requested
                 const cardsWithDetails = await Promise.all(
@@ -108,9 +106,6 @@ export async function getBoardSummary(params: GetBoardSummaryParams) {
                 };
             }),
         );
-
-        // Get all labels for the board
-        const boardLabels = await getLabels(boardId);
 
         // Calculate overall statistics
         const totalCards = listsWithCards.reduce(

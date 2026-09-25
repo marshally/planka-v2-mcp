@@ -26,6 +26,8 @@ All functionality is grouped into **Manager Tools**. Each tool accepts an `actio
 | `get_board_summary` | `boardId`, `includeTaskDetails`, `includeComments` | Get comprehensive board summary including stats. |
 | `get_project_summary` | `id` | Get summary for all boards in a project. |
 
+`get_board_summary` returns each card's assigned `labelIds` and resolved `labels` (`id`, `name`, `color`). Its top-level `labels` remains the complete board label catalog. Without task or comment details, the summary uses one board read.
+
 ---
 
 ## 📋 List Management
@@ -40,6 +42,8 @@ All functionality is grouped into **Manager Tools**. Each tool accepts an `actio
 **Tool**: `mcp_kanban_card_manager`
 - **Actions**: `get_all`, `create`, `get_one`, `update`, `move`, `duplicate`, `delete`, `workflow_action`.
 - **v2.x Features**:
+  - `get_all` and `get_one` add assigned `labelIds: string[]` and resolved `labels: { id, name, color }[]` to each card. Unassigned cards have empty arrays. An assigned ID can remain in `labelIds` when its label definition is unavailable.
+  - `get_card_details` returns the same fields on `card`; its top-level `labels` contains only that card's resolved assignments.
   - `create`: Defaults to `type: "project"`.
   - `update`: Now supports changing the **Card Type** (`project` or `story`).
   - `move`: Supports moving cards between boards.

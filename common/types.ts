@@ -161,6 +161,10 @@ export type PlankaBoard = z.infer<typeof PlankaBoardSchema>;
 export type PlankaList = z.infer<typeof PlankaListSchema>;
 export type PlankaLabel = z.infer<typeof PlankaLabelSchema>;
 export type PlankaCard = z.infer<typeof PlankaCardSchema>;
+export type CardWithLabels = PlankaCard & {
+  labelIds: string[];
+  labels: Pick<PlankaLabel, "id" | "name" | "color">[];
+};
 export type PlankaTaskList = z.infer<typeof PlankaTaskListSchema>;
 export type PlankaTask = z.infer<typeof PlankaTaskSchema>;
 export type PlankaComment = z.infer<typeof PlankaCommentSchema>;
@@ -171,4 +175,3 @@ export type PlankaProjectMembership = z.infer<
   typeof PlankaProjectMembershipSchema
 >;
 export type PlankaCardLabel = z.infer<typeof PlankaCardLabelSchema>;
-

@@ -2,8 +2,6 @@ import { z } from "zod";
 import { getCard } from "../operations/cards.js";
 import { getTasks } from "../operations/tasks.js";
 import { getComments } from "../operations/comments.js";
-import { getLabels } from "../operations/labels.js";
-import { getList } from "../operations/lists.js";
 
 /**
  * Zod schema for the getCardDetails function parameters
@@ -47,26 +45,7 @@ export async function getCardDetails(params: GetCardDetailsParams) {
         // Get comments for the card
         const comments = await getComments(card.id);
 
-        // Find the board ID: check card.boardId first, then query the card's list directly (O(1))
-        let boardId: string | null = (card as any).boardId || null;
-
-        if (!boardId && card.listId) {
-            try {
-                const list = await getList(card.listId);
-                if (list?.boardId) {
-                    boardId = list.boardId;
-                }
-            } catch {
-                boardId = null;
-            }
-        }
-
-        const labels = boardId ? await getLabels(boardId) : [];
-
-        // Filter to just the labels assigned to this card
-        // Note: We need to get the labelIds from the card's data
-        // This might require additional API calls or data structure knowledge
-        // For now, we'll return all labels for the board
+        const labels = card.labels;
 
         // Calculate task completion percentage
         const completedTasks = tasks.filter((task: any) =>
