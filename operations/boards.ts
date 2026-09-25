@@ -94,7 +94,7 @@ const BoardResponseSchema = z.object({
 const BoardSnapshotSchema = z.object({
   item: PlankaBoardSchema,
   included: z.object({
-    lists: z.array(PlankaListSchema).default([]),
+    lists: z.array(PlankaListSchema.passthrough()).default([]),
     cards: z.array(PlankaCardSchema).default([]),
     labels: z.array(PlankaLabelSchema.passthrough()).default([]),
     cardLabels: z.array(PlankaCardLabelSchema).default([]),

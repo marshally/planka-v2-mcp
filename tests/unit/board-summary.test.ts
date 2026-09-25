@@ -11,7 +11,7 @@ const card = (id: string, listId: string) => ({ id, listId, name: id, type: "pro
 const label = (id: string, name: string) => ({ id, boardId: "board-1", name, color: "berry-red", position: 1, createdAt: null, updatedAt: null });
 const assignment = (cardId: string, labelId: string) => ({ id: `${cardId}-${labelId}`, cardId, labelId, createdAt: null, updatedAt: null });
 const snapshot = { item: board, included: {
-  lists: [list("backlog", "Backlog"), list("done", "Done")],
+  lists: [{ ...list("backlog", "Backlog"), customViewSetting: "kept" }, list("done", "Done")],
   cards: [card("a", "backlog"), card("b", "backlog"), card("c", "done")],
   labels: [label("urgent", "Urgent"), label("bug", "Bug"), label("unused", "Unused")],
   cardLabels: [assignment("a", "urgent"), assignment("a", "bug"), assignment("b", "bug"), assignment("b", "missing")],
@@ -29,6 +29,7 @@ describe("board snapshot summary", () => {
     expect(calls()).toEqual(["/api/boards/board-1"]);
     expect(result.board).toEqual(board);
     expect(result.labels).toEqual(snapshot.included.labels);
+    expect(result.lists[0]).toMatchObject({ customViewSetting: "kept" });
     expect(result.lists.map(({ cards, cardCount }: any) => ({ cardCount, cards: cards.map(({ id, labelIds, labels }: any) => ({ id, labelIds, labels })) }))).toEqual([
       { cardCount: 2, cards: [
         { id: "a", labelIds: ["urgent", "bug"], labels: [{ id: "urgent", name: "Urgent", color: "berry-red" }, { id: "bug", name: "Bug", color: "berry-red" }] },
