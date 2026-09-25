@@ -138,7 +138,8 @@ async function boardLabelsFor(cards: z.infer<typeof PlankaCardSchema>[], listId:
   return boardId ? getLabels(boardId) : [];
 }
 
-async function getRawCard(id: string) {
+/** Read a card for operations that do not need resolved label definitions. */
+export async function getRawCard(id: string) {
   const response = await plankaRequest(`/api/cards/${sanitizeId(id)}`);
   return CardResponseSchema.parse(response).item;
 }

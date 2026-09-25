@@ -40,14 +40,23 @@ All functionality is grouped into **Manager Tools**. Each tool accepts an `actio
 
 ## 🗂️ Card Management
 **Tool**: `mcp_kanban_card_manager`
-- **Actions**: `get_all`, `create`, `get_one`, `update`, `move`, `duplicate`, `delete`, `workflow_action`.
+- **Actions**: `get_all`, `create`, `get_one`, `get_details`, `update`, `move`, `duplicate`, `delete`, `workflow_action`.
 - **v2.x Features**:
   - `get_all` and `get_one` add assigned `labelIds: string[]` and resolved `labels: { id, name, color }[]` to each card. Unassigned cards have empty arrays. An assigned ID can remain in `labelIds` when its label definition is unavailable.
-  - `get_card_details` returns the same fields on `card`; its top-level `labels` contains only that card's resolved assignments.
+  - `get_details` returns the same fields on `card`; its top-level `labels` contains only that card's resolved assignments.
   - `create`: Defaults to `type: "project"`.
   - `update`: Now supports changing the **Card Type** (`project` or `story`).
   - `move`: Supports moving cards between boards.
   - `workflow_action`: Execute structured workflow operations (`start`, `block`, `unblock`, `review`, `complete`, `archive`) with automated list transition, task completion/addition, and audit comments. Parameters: `id` (Card ID), `workflowAction`, and optional `taskIds`.
+
+For example, a `get_all` read can include these card fields:
+
+```json
+[
+  { "id": "card-1", "labelIds": ["label-bug"], "labels": [{ "id": "label-bug", "name": "Bug", "color": "berry-red" }] },
+  { "id": "card-2", "labelIds": [], "labels": [] }
+]
+```
 
 ---
 
