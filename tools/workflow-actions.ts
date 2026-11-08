@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getCard, moveCard } from "../operations/cards.js";
+import { getRawCard, moveCard } from "../operations/cards.js";
 import { createComment } from "../operations/comments.js";
 import { getList, getLists } from "../operations/lists.js";
 import { getBoard } from "../operations/boards.js";
@@ -58,7 +58,7 @@ export async function performWorkflowAction(params: WorkflowActionParams) {
 
     try {
         // Get the card details
-        const card = await getCard(cardId);
+        const card = await getRawCard(cardId);
 
         if (!card) {
             throw new Error(`Card with ID ${cardId} not found`);

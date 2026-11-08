@@ -36,6 +36,7 @@ describe("tools/card-details: getCardDetails", () => {
           item: mockCard,
           included: {
             taskLists: [{ id: "tl-1" }],
+            cardLabels: [{ id: "cl-1", cardId: "card-1", labelId: "l1", createdAt: null, updatedAt: null }],
           },
         };
       }
@@ -69,7 +70,7 @@ describe("tools/card-details: getCardDetails", () => {
         return { items: [] };
       }
       if (path === "/api/boards/board-1/labels") {
-        return { items: [{ id: "l1", name: "Bug", color: "berry-red", boardId: "board-1" }] };
+        return { items: [{ id: "l1", name: "Bug", color: "berry-red", boardId: "board-1" }, { id: "unused", name: "Unused", color: "lagoon-blue", boardId: "board-1" }] };
       }
       throw new Error(`Unexpected path: ${path}`);
     });
@@ -80,7 +81,9 @@ describe("tools/card-details: getCardDetails", () => {
     expect(result.taskStats.total).toBe(2);
     expect(result.taskStats.completed).toBe(1);
     expect(result.taskStats.completionPercentage).toBe(50);
-    expect(result.labels.length).toBe(1);
+    expect((result.card as any).labelIds).toEqual(["l1"]);
+    expect((result.card as any).labels).toEqual([{ id: "l1", name: "Bug", color: "berry-red" }]);
+    expect(result.labels).toEqual((result.card as any).labels);
 
     // Verify /api/lists/ was NOT called because card already had boardId!
     const calls = mockPlankaRequest.mock.calls.map((c: any[]) => c[0]);
@@ -103,7 +106,7 @@ describe("tools/card-details: getCardDetails", () => {
 
     mockPlankaRequest.mockImplementation(async (path: string) => {
       if (path === "/api/cards/card-2") {
-        return { item: mockCardWithoutBoard };
+        return { item: mockCardWithoutBoard, included: { cardLabels: [{ id: "cl-2", cardId: "card-2", labelId: "l2", createdAt: null, updatedAt: null }] } };
       }
       if (path === "/api/cards/card-2/comments") {
         return { items: [] };
@@ -121,7 +124,7 @@ describe("tools/card-details: getCardDetails", () => {
         };
       }
       if (path === "/api/boards/board-resolved-from-list/labels") {
-        return { items: [] };
+        return { items: [{ id: "l2", boardId: "board-resolved-from-list", name: "Urgent", color: "berry-red" }] };
       }
       throw new Error(`Unexpected path: ${path}`);
     });
@@ -129,6 +132,7 @@ describe("tools/card-details: getCardDetails", () => {
     const result = await getCardDetails({ cardId: "card-2" });
 
     expect(result.card.id).toBe("card-2");
+    expect(result.labels).toEqual([{ id: "l2", name: "Urgent", color: "berry-red" }]);
     const calls = mockPlankaRequest.mock.calls.map((c: any[]) => c[0]);
     expect(calls).toContain("/api/lists/list-99");
     expect(calls).toContain("/api/boards/board-resolved-from-list/labels");
@@ -150,7 +154,7 @@ describe("tools/card-details: getCardDetails", () => {
 
     mockPlankaRequest.mockImplementation(async (path: string) => {
       if (path === "/api/cards/card-orphan") {
-        return { item: mockOrphanCard };
+        return { item: mockOrphanCard, included: { cardLabels: [{ id: "cl-orphan", cardId: "card-orphan", labelId: "missing", createdAt: null, updatedAt: null }] } };
       }
       if (path === "/api/cards/card-orphan/comments") {
         return { items: [] };
@@ -164,6 +168,7 @@ describe("tools/card-details: getCardDetails", () => {
     const result = await getCardDetails({ cardId: "card-orphan" });
 
     expect(result.card.id).toBe("card-orphan");
+    expect((result.card as any).labelIds).toEqual(["missing"]);
     expect(result.labels).toEqual([]);
     expect(result.analysis.isComplete).toBe(false);
   });

@@ -8,7 +8,10 @@
 
 import { z } from "zod";
 import { plankaRequest, sanitizeId } from "../common/utils.js";
-import { PlankaCardSchema, PlankaStopwatchSchema } from "../common/types.js";
+import { PlankaCardSchema, PlankaCardLabelSchema, PlankaStopwatchSchema } from "../common/types.js";
+import { withCardLabels } from "../common/card-labels.js";
+import { getList } from "./lists.js";
+import { getLabels } from "./labels.js";
 
 // Schema definitions
 /**
@@ -114,15 +117,32 @@ export type ResetCardStopwatchOptions = z.infer<
 >;
 
 // Response schemas
-const CardsResponseSchema = z.object({
-  items: z.array(PlankaCardSchema),
-  included: z.record(z.any()).optional(),
-});
-
 const CardResponseSchema = z.object({
   item: PlankaCardSchema,
   included: z.record(z.any()).optional(),
 });
+
+const ReadCardsResponseSchema = z.object({
+  items: z.array(PlankaCardSchema),
+  included: z.object({ cardLabels: z.array(PlankaCardLabelSchema).optional() }).passthrough().optional(),
+});
+
+const ReadCardResponseSchema = z.object({
+  item: PlankaCardSchema,
+  included: z.object({ cardLabels: z.array(PlankaCardLabelSchema).optional() }).passthrough().optional(),
+});
+
+async function boardLabelsFor(cards: z.infer<typeof PlankaCardSchema>[], listId: string, hasAssignments: boolean) {
+  if (!hasAssignments) return [];
+  const boardId = cards.find((card) => card.boardId)?.boardId ?? (await getList(listId))?.boardId;
+  return boardId ? getLabels(boardId) : [];
+}
+
+/** Read a card for operations that do not need resolved label definitions. */
+export async function getRawCard(id: string) {
+  const response = await plankaRequest(`/api/cards/${sanitizeId(id)}`);
+  return CardResponseSchema.parse(response).item;
+}
 
 // Function implementations
 /**
@@ -165,8 +185,10 @@ export async function createCard(options: CreateCardOptions) {
 export async function getCards(listId: string) {
   try {
     const response = await plankaRequest(`/api/lists/${sanitizeId(listId)}/cards`);
-    const parsedResponse = CardsResponseSchema.parse(response);
-    return parsedResponse.items;
+    const parsedResponse = ReadCardsResponseSchema.parse(response);
+    const assignments = parsedResponse.included?.cardLabels ?? [];
+    const labels = await boardLabelsFor(parsedResponse.items, listId, assignments.length > 0);
+    return withCardLabels(parsedResponse.items, assignments, labels);
   } catch (error) {
     console.error(`Error getting cards for list ${listId}:`, error);
     return [];
@@ -182,8 +204,10 @@ export async function getCards(listId: string) {
 export async function getCard(id: string) {
   try {
     const response = await plankaRequest(`/api/cards/${sanitizeId(id)}`);
-    const parsedResponse = CardResponseSchema.parse(response);
-    return parsedResponse.item;
+    const parsedResponse = ReadCardResponseSchema.parse(response);
+    const assignments = parsedResponse.included?.cardLabels ?? [];
+    const labels = await boardLabelsFor([parsedResponse.item], parsedResponse.item.listId, assignments.length > 0);
+    return withCardLabels([parsedResponse.item], assignments, labels)[0];
   } catch (error) {
     throw new Error(
       `Failed to get card: ${error instanceof Error ? error.message : String(error)}`
@@ -265,7 +289,7 @@ export async function moveCard(
  */
 export async function duplicateCard(id: string, position?: number) {
   try {
-    const originalCard = await getCard(id);
+    const originalCard = await getRawCard(id);
 
     const newCard = await createCard({
       listId: originalCard.listId,
@@ -353,7 +377,7 @@ export async function archiveCard(id: string) {
  */
 export async function startCardStopwatch(id: string) {
   try {
-    const card = await getCard(id);
+    const card = await getRawCard(id);
     const response = await plankaRequest(`/api/cards/${sanitizeId(id)}`, {
       method: "PATCH",
       body: {
@@ -376,7 +400,7 @@ export async function startCardStopwatch(id: string) {
 export async function stopCardStopwatch(id: string) {
   try {
     // We first need the current total
-    const card = await getCard(id);
+    const card = await getRawCard(id);
     const existingTotal = card.stopwatch?.total || 0;
     let newTotal = existingTotal;
     
@@ -414,7 +438,7 @@ export async function stopCardStopwatch(id: string) {
  */
 export async function getCardStopwatch(id: string) {
   try {
-    const card = await getCard(id);
+    const card = await getRawCard(id);
 
     if (!card.stopwatch) {
       return {
@@ -489,4 +513,3 @@ function formatDuration(seconds: number): string {
 
   return result.trim();
 }
-
